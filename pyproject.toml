@@ -1,0 +1,37 @@
+[project]
+name = "sunpower_controller"
+version = "0.1.0"
+description = "A collection of Python interfaces for communicating with HISPEC FEI components, including Sunpower cryocooler control."
+authors = [
+    { name = "Michael Langmayr", email = "langmayr@caltech.edu" }
+]
+maintainers = [
+    {name = "Michael Langmayr", email = "langmayr@caltech.edu"}
+]
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+dependencies = [
+    "pyserial>=3.4",
+]
+
+[project.urls]
+# Various URLs related to your project. These links are displayed on PyPI.
+# Homepage = "https://example.com"
+# Documentation = "https://readthedocs.org"
+Repository = "https://github.com/COO-Utils/sunpower"
+"Bug Tracker" = "https://github.com/COO-Utils/sunpower/issues"
+# Changelog = "https://github.com/yourusername/your-repo/blob/master/CHANGELOG.md"
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-mock",
+    "pytest", 
+    "black",
+    "flake8"
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
