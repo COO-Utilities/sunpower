@@ -2,13 +2,13 @@
 import unittest
 from unittest.mock import patch
 # pylint: disable=import-error,no-name-in-module
-from sunpower_controller import SunpowerCryocooler
+from sunpower import SunpowerCryocooler
 
 
 class TestSunpowerController(unittest.TestCase):
     """Unit tests for the SunpowerCryocooler class."""
 
-    @patch("sunpower_controller.serial.Serial")
+    @patch("serial.Serial")
     def setUp(self, mock_serial): # pylint: disable=arguments-differ
         """Set up the test case with a mocked serial connection."""
         self.mock_serial = mock_serial.return_value

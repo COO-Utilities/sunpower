@@ -20,7 +20,7 @@ pip install .
 ## Usage
 ### Serial Connection
 ```python
-from sunpower_controller import SunpowerCryocooler
+from sunpower import SunpowerCryocooler
 
 controller = SunpowerCryocooler(port='/dev/ttyUSB0', baudrate=9600, quiet=True)
 
