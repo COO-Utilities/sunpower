@@ -22,27 +22,27 @@ class SunpowerCryocooler:
             logfile=None
     ): # pylint: disable=too-many-arguments
         """ Initialize the SunpowerCryocooler."""
+        if not logfile:
+            logfile = __name__.rsplit('.', 1)[-1] + '.log'
+        self.logger = logging.getLogger(logfile)
+        self.logger.setLevel(logging.INFO)
+
+        # console logging
+        console_formatter = logging.Formatter(
+            '%(asctime)s--%(message)s')
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setFormatter(console_formatter)
+        self.logger.addHandler(console_handler)
+
+        # file logging
         if not quiet:
-            if logfile is None:
-                logfile = __name__.rsplit('.', 1)[-1] + '.log'
-            self.logger = logging.getLogger(logfile)
-            self.logger.setLevel(logging.INFO)
-            formatter = logging.Formatter(
+            file_formatter = logging.Formatter(
                 '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
             )
             file_handler = logging.FileHandler(logfile)
-            file_handler.setFormatter(formatter)
+            file_handler.setFormatter(file_formatter)
             self.logger.addHandler(file_handler)
 
-            console_formatter = logging.Formatter(
-                '%(asctime)s--%(message)s')
-            console_handler = logging.StreamHandler(sys.stdout)
-            console_handler.setFormatter(console_formatter)
-            self.logger.addHandler(console_handler)
-        else:
-            self.logger = None
-        
-        
         self.connection_type = connection_type
         self.read_timeout = read_timeout
 
