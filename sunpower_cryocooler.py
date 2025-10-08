@@ -4,9 +4,38 @@ A Python class to control a Sunpower cryocooler via serial or TCP connection.
 import sys
 import socket
 import time
-import serial
 import logging
+from typing import Union
+import serial
 
+
+def parse_single_value(reply: list) -> Union[float, int, bool, str]:
+    """Attempt to parse a single value from the reply list."""
+    if not isinstance(reply, list):
+        raise TypeError("reply must be a list")
+
+    val = reply[1]
+
+    # Parse Booleans
+    if val in ("true", "yes", "on", "1"):
+        return True
+    if val in ("false", "no", "off", "0"):
+        return False
+
+    # Parse integers
+    try:
+        return int(val)
+    except ValueError:
+        pass
+
+    # Parse floats
+    try:
+        return float(val)
+    except ValueError:
+        pass
+
+    # Fallback: return string
+    return val.strip()
 
 class SunpowerCryocooler:
     """A class to control a Sunpower cryocooler via serial or TCP connection."""
@@ -20,7 +49,7 @@ class SunpowerCryocooler:
             tcp_port=None,
             read_timeout=1.0,
             logfile=None
-    ): # pylint: disable=too-many-arguments
+    ): # pylint: disable=too-many-arguments,too-many-positional-arguments
         """ Initialize the SunpowerCryocooler."""
         if not logfile:
             logfile = __name__.rsplit('.', 1)[-1] + '.log'
@@ -87,6 +116,7 @@ class SunpowerCryocooler:
         """Read and return lines from the device."""
         lines_out = []
         try:
+            raw_data = None
             if self.connection_type == "serial":
                 raw_data = self.ser.read(1024)
             elif self.connection_type == "tcp":
@@ -124,44 +154,44 @@ class SunpowerCryocooler:
 
     def get_error(self):
         """Get the last error message from the Sunpower cryocooler."""
-        return self._send_and_read("ERROR")
+        return parse_single_value(self._send_and_read("ERROR"))
 
     def get_version(self):
         """Get the firmware version of the Sunpower cryocooler."""
-        return self._send_and_read("VERSION")
+        return parse_single_value(self._send_and_read("VERSION"))
 
     def get_cold_head_temp(self):
         """Get the temperature of the cold head."""
-        return self._send_and_read("TC")
+        return parse_single_value(self._send_and_read("TC"))
 
     def get_reject_temp(self):
         """Get the temperature of the reject heat."""
-        return self._send_and_read("TEMP RJ")
+        return parse_single_value(self._send_and_read("TEMP RJ"))
 
     def get_target_temp(self):
         """Get the target temperature set for the cryocooler."""
-        return self._send_and_read("TTARGET")
+        return parse_single_value(self._send_and_read("TTARGET"))
 
     def set_target_temp(self, temp_kelvin: float):
         """Set the target temperature for the cryocooler in Kelvin."""
-        return self._send_and_read(f"TTARGET={temp_kelvin}")
+        return parse_single_value(self._send_and_read(f"TTARGET={temp_kelvin}"))
 
     def get_measured_power(self):
         """Get the measured power of the cryocooler."""
-        return self._send_and_read("P")
+        return parse_single_value(self._send_and_read("P"))
 
     def get_commanded_power(self):
         """Get the commanded power of the cryocooler."""
-        return self._send_and_read("PWOUT")
+        return parse_single_value(self._send_and_read("PWOUT"))
 
     def set_commanded_power(self, watts: float):
         """Set the commanded power for the cryocooler in watts."""
-        return self._send_and_read(f"PWOUT={watts}")
+        return parse_single_value(self._send_and_read(f"PWOUT={watts}"))
 
     def turn_on_cooler(self):
         """Turn on the cryocooler."""
-        return self._send_and_read("COOLER=ON")
+        return parse_single_value(self._send_and_read("COOLER=ON"))
 
     def turn_off_cooler(self):
         """Turn off the cryocooler."""
-        return self._send_and_read("COOLER=OFF")
+        return parse_single_value(self._send_and_read("COOLER=OFF"))
