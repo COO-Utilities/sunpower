@@ -15,14 +15,14 @@ def parse_single_value(reply: list) -> Union[float, int, bool, str]:
         raise TypeError("reply must be a list")
 
     try:
-        val = reply[1].lower()
+        val = reply[1]
     except IndexError:
         return "No reply"
 
     # Parse Booleans
-    if val in ("true", "yes", "on", "1"):
+    if val.lower() in ("true", "yes", "on", "1"):
         return True
-    if val in ("false", "no", "off", "0"):
+    if val.lower() in ("false", "no", "off", "0"):
         return False
 
     # Parse integers
