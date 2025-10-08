@@ -14,7 +14,10 @@ def parse_single_value(reply: list) -> Union[float, int, bool, str]:
     if not isinstance(reply, list):
         raise TypeError("reply must be a list")
 
-    val = reply[1]
+    try:
+        val = reply[1]
+    except IndexError:
+        return "No reply"
 
     # Parse Booleans
     if val in ("true", "yes", "on", "1"):
