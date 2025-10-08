@@ -195,3 +195,12 @@ class SunpowerCryocooler:
     def turn_off_cooler(self):
         """Turn off the cryocooler."""
         return parse_single_value(self._send_and_read("COOLER=OFF"))
+
+    def close(self):
+        """Close the connection."""
+        if self.connection_type == "serial":
+            self.ser.close()
+            self.logger.info("Serial connection closed.")
+        elif self.connection_type == "tcp":
+            self.sock.close()
+            self.logger.info("TCP connection closed.")
