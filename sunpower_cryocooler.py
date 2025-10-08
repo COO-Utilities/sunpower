@@ -72,8 +72,7 @@ class SunpowerCryocooler:
         self.ser = None
         self.sock = None
 
-    def connect(self, port="/dev/ttyUSB0", baudrate=9600,
-                tcp_host=None, tcp_port=None):
+    def connect(self, tcp_host=None, tcp_port=None, port="/dev/ttyUSB0", baudrate=9600):
         """Connect to the Sunpower controller."""
         try:
             if self.connection_type == "serial":
