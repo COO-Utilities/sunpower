@@ -39,17 +39,8 @@ def parse_single_value(reply: list) -> Union[float, int, bool, str]:
 
 class SunpowerCryocooler:
     """A class to control a Sunpower cryocooler via serial or TCP connection."""
-    def __init__(
-            self,
-            port="/dev/ttyUSB0",
-            baudrate=9600,
-            quiet=True,
-            connection_type="serial",
-            tcp_host=None,
-            tcp_port=None,
-            read_timeout=1.0,
-            logfile=None
-    ): # pylint: disable=too-many-arguments,too-many-positional-arguments
+    def __init__(self, logfile=None, quiet=True, connection_type='tcp',
+                 read_timeout=1.0):
         """ Initialize the SunpowerCryocooler."""
         if not logfile:
             logfile = __name__.rsplit('.', 1)[-1] + '.log'
@@ -74,30 +65,9 @@ class SunpowerCryocooler:
 
         self.connection_type = connection_type
         self.read_timeout = read_timeout
+        self.ser = None
+        self.sock = None
 
-        try:
-            if connection_type == "serial":
-                self.ser = serial.Serial(
-                    port=port,
-                    baudrate=baudrate,
-                    timeout=read_timeout,
-                    parity=serial.PARITY_NONE,
-                    stopbits=serial.STOPBITS_ONE,
-                )
-                self.logger.info("Serial connection opened: %s", self.ser.is_open)
-            elif connection_type == "tcp":
-                if tcp_host is None or tcp_port is None:
-                    raise ValueError(
-                        "tcp_host and tcp_port must be specified for TCP connection"
-                    )
-                self.sock = socket.create_connection((tcp_host, tcp_port), timeout=2)
-                self.sock.settimeout(read_timeout)
-                self.logger.info("TCP connection opened: %s:%s", tcp_host, tcp_port)
-            else:
-                raise ValueError("connection_type must be 'serial' or 'tcp'")
-        except Exception as ex:
-            self.logger.error("Failed to establish connection: %s", ex)
-            raise
 
     def _send_command(self, command: str):
         """Send a command to the Sunpower controller."""
@@ -196,7 +166,34 @@ class SunpowerCryocooler:
         """Turn off the cryocooler."""
         return parse_single_value(self._send_and_read("COOLER=OFF"))
 
-    def close(self):
+    def connect(self, port="/dev/ttyUSB0", baudrate=9600,
+                tcp_host=None, tcp_port=None):
+        """Connect to the Sunpower controller."""
+        try:
+            if self.connection_type == "serial":
+                self.ser = serial.Serial(
+                    port=port,
+                    baudrate=baudrate,
+                    timeout=self.read_timeout,
+                    parity=serial.PARITY_NONE,
+                    stopbits=serial.STOPBITS_ONE,
+                )
+                self.logger.info("Serial connection opened: %s", self.ser.is_open)
+            elif self.connection_type == "tcp":
+                if tcp_host is None or tcp_port is None:
+                    raise ValueError(
+                        "tcp_host and tcp_port must be specified for TCP connection"
+                    )
+                self.sock = socket.create_connection((tcp_host, tcp_port), timeout=2)
+                self.sock.settimeout(self.read_timeout)
+                self.logger.info("TCP connection opened: %s:%s", tcp_host, tcp_port)
+            else:
+                raise ValueError("connection_type must be 'serial' or 'tcp'")
+        except Exception as ex:
+            self.logger.error("Failed to establish connection: %s", ex)
+            raise
+
+    def disconnect(self):
         """Close the connection."""
         if self.connection_type == "serial":
             self.ser.close()
