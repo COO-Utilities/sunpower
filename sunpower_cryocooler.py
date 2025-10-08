@@ -69,22 +69,57 @@ class SunpowerCryocooler:
         self.ser = None
         self.sock = None
 
+    def connect(self, port="/dev/ttyUSB0", baudrate=9600,
+                tcp_host=None, tcp_port=None):
+        """Connect to the Sunpower controller."""
+        try:
+            if self.connection_type == "serial":
+                self.ser = serial.Serial(
+                    port=port,
+                    baudrate=baudrate,
+                    timeout=self.read_timeout,
+                    parity=serial.PARITY_NONE,
+                    stopbits=serial.STOPBITS_ONE,
+                )
+                self.logger.info("Serial connection opened: %s", self.ser.is_open)
+                self.connected = True
+            elif self.connection_type == "tcp":
+                if tcp_host is None or tcp_port is None:
+                    raise ValueError(
+                        "tcp_host and tcp_port must be specified for TCP connection"
+                    )
+                self.sock = socket.create_connection((tcp_host, tcp_port), timeout=2)
+                self.sock.settimeout(self.read_timeout)
+                self.logger.info("TCP connection opened: %s:%s", tcp_host, tcp_port)
+                self.connected = True
+            else:
+                raise ValueError("connection_type must be 'serial' or 'tcp'")
+        except Exception as ex:
+            self.logger.error("Failed to establish connection: %s", ex)
+            raise
+
+    def disconnect(self):
+        """Close the connection."""
+        if self.connection_type == "serial":
+            self.ser.close()
+            self.logger.info("Serial connection closed.")
+        elif self.connection_type == "tcp":
+            self.sock.close()
+            self.logger.info("TCP connection closed.")
+        self.connected = False
 
     def _send_command(self, command: str):
         """Send a command to the Sunpower controller."""
-        if self.connected:
-            full_cmd = f"{command}\r"
-            try:
-                if self.connection_type == "serial":
-                    self.ser.write(full_cmd.encode())
-                elif self.connection_type == "tcp":
-                    self.sock.sendall(full_cmd.encode())
-                self.logger.debug("Sent command: %s", repr(full_cmd))
-            except Exception as ex:
-                self.logger.error("Failed to send command '%s': %s", command, ex)
-                raise
-        else:
-            self.logger.error("Failed to send command '%s': Not connected", command)
+        full_cmd = f"{command}\r"
+        try:
+            if self.connection_type == "serial":
+                self.ser.write(full_cmd.encode())
+            elif self.connection_type == "tcp":
+                self.sock.sendall(full_cmd.encode())
+            self.logger.debug("Sent command: %s", repr(full_cmd))
+        except Exception as ex:
+            self.logger.error("Failed to send command '%s': %s", command, ex)
+            raise
 
     def _read_reply(self):
         """Read and return lines from the device."""
@@ -117,9 +152,12 @@ class SunpowerCryocooler:
 
     def _send_and_read(self, command: str):
         """Send a command and read the reply."""
-        self._send_command(command)
-        time.sleep(0.2)  # wait a bit for device to reply
-        return self._read_reply()
+        if self.connected:
+            self._send_command(command)
+            time.sleep(0.2)  # wait a bit for device to reply
+            return self._read_reply()
+        self.logger.error("Failed to send command '%s': Not connected", command)
+        return []
 
     # --- User-Facing Methods (synchronous) ---
     def get_status(self):
@@ -169,42 +207,3 @@ class SunpowerCryocooler:
     def turn_off_cooler(self):
         """Turn off the cryocooler."""
         return parse_single_value(self._send_and_read("COOLER=OFF"))
-
-    def connect(self, port="/dev/ttyUSB0", baudrate=9600,
-                tcp_host=None, tcp_port=None):
-        """Connect to the Sunpower controller."""
-        try:
-            if self.connection_type == "serial":
-                self.ser = serial.Serial(
-                    port=port,
-                    baudrate=baudrate,
-                    timeout=self.read_timeout,
-                    parity=serial.PARITY_NONE,
-                    stopbits=serial.STOPBITS_ONE,
-                )
-                self.logger.info("Serial connection opened: %s", self.ser.is_open)
-                self.connected = True
-            elif self.connection_type == "tcp":
-                if tcp_host is None or tcp_port is None:
-                    raise ValueError(
-                        "tcp_host and tcp_port must be specified for TCP connection"
-                    )
-                self.sock = socket.create_connection((tcp_host, tcp_port), timeout=2)
-                self.sock.settimeout(self.read_timeout)
-                self.logger.info("TCP connection opened: %s:%s", tcp_host, tcp_port)
-                self.connected = True
-            else:
-                raise ValueError("connection_type must be 'serial' or 'tcp'")
-        except Exception as ex:
-            self.logger.error("Failed to establish connection: %s", ex)
-            raise
-
-    def disconnect(self):
-        """Close the connection."""
-        if self.connection_type == "serial":
-            self.ser.close()
-            self.logger.info("Serial connection closed.")
-        elif self.connection_type == "tcp":
-            self.sock.close()
-            self.logger.info("TCP connection closed.")
-        self.connected = False
