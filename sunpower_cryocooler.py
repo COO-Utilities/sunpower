@@ -15,7 +15,7 @@ def parse_single_value(reply: list) -> Union[float, int, bool, str]:
         raise TypeError("reply must be a list")
 
     try:
-        val = reply[1]
+        val = reply[1].lower()
     except IndexError:
         return "No reply"
 
