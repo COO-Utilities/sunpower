@@ -65,22 +65,26 @@ class SunpowerCryocooler:
 
         self.connection_type = connection_type
         self.read_timeout = read_timeout
+        self.connected = False
         self.ser = None
         self.sock = None
 
 
     def _send_command(self, command: str):
         """Send a command to the Sunpower controller."""
-        full_cmd = f"{command}\r"
-        try:
-            if self.connection_type == "serial":
-                self.ser.write(full_cmd.encode())
-            elif self.connection_type == "tcp":
-                self.sock.sendall(full_cmd.encode())
-            self.logger.debug("Sent command: %s", repr(full_cmd))
-        except Exception as ex:
-            self.logger.error("Failed to send command '%s': %s", command, ex)
-            raise
+        if self.connected:
+            full_cmd = f"{command}\r"
+            try:
+                if self.connection_type == "serial":
+                    self.ser.write(full_cmd.encode())
+                elif self.connection_type == "tcp":
+                    self.sock.sendall(full_cmd.encode())
+                self.logger.debug("Sent command: %s", repr(full_cmd))
+            except Exception as ex:
+                self.logger.error("Failed to send command '%s': %s", command, ex)
+                raise
+        else:
+            self.logger.error("Failed to send command '%s': Not connected", command)
 
     def _read_reply(self):
         """Read and return lines from the device."""
@@ -179,6 +183,7 @@ class SunpowerCryocooler:
                     stopbits=serial.STOPBITS_ONE,
                 )
                 self.logger.info("Serial connection opened: %s", self.ser.is_open)
+                self.connected = True
             elif self.connection_type == "tcp":
                 if tcp_host is None or tcp_port is None:
                     raise ValueError(
@@ -187,6 +192,7 @@ class SunpowerCryocooler:
                 self.sock = socket.create_connection((tcp_host, tcp_port), timeout=2)
                 self.sock.settimeout(self.read_timeout)
                 self.logger.info("TCP connection opened: %s:%s", tcp_host, tcp_port)
+                self.connected = True
             else:
                 raise ValueError("connection_type must be 'serial' or 'tcp'")
         except Exception as ex:
@@ -201,3 +207,4 @@ class SunpowerCryocooler:
         elif self.connection_type == "tcp":
             self.sock.close()
             self.logger.info("TCP connection closed.")
+        self.connected = False
