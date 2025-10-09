@@ -43,27 +43,30 @@ def parse_single_value(reply: list) -> Union[float, int, bool, str]:
 class SunpowerCryocooler:
     """A class to control a Sunpower cryocooler via serial or TCP connection."""
     # pylint: disable=too-many-instance-attributes
-    def __init__(self, logfile=None, quiet=True, connection_type='tcp',
-                 read_timeout=1.0):
+    def __init__(self, log: bool =True, logfile: str=None,
+                 connection_type: str ='tcp', read_timeout: float =1.0):
         """ Initialize the SunpowerCryocooler."""
+
         if not logfile:
-            logfile = __name__.rsplit('.', 1)[-1] + '.log'
+            logfile = __name__.rsplit('.', 1)[-1]
         self.logger = logging.getLogger(logfile)
         self.logger.setLevel(logging.INFO)
 
         # console logging
         console_formatter = logging.Formatter(
-            '%(asctime)s--%(message)s')
+            '%(asctime)s - %(levelname)s - %(message)s')
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setFormatter(console_formatter)
         self.logger.addHandler(console_handler)
 
         # file logging
-        if not quiet:
+        if log:
             file_formatter = logging.Formatter(
                 '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
             )
-            file_handler = logging.FileHandler(logfile)
+            file_handler = logging.FileHandler(logfile + '.log')
+            file_handler.setFormatter(file_formatter)
+            self.logger.addHandler(file_handler)
             file_handler.setFormatter(file_formatter)
             self.logger.addHandler(file_handler)
 
@@ -86,7 +89,7 @@ class SunpowerCryocooler:
                     parity=serial.PARITY_NONE,
                     stopbits=serial.STOPBITS_ONE,
                 )
-                self._log(f"Serial connection opened: {self.ser.is_open}", logging.INFO)
+                self.logger.info("Serial connection opened: %s",self.ser.is_open)
                 self.connected = True
             elif self.connection_type == "tcp":
                 if tcp_host is None or tcp_port is None:
@@ -95,22 +98,22 @@ class SunpowerCryocooler:
                     )
                 self.sock = socket.create_connection((tcp_host, tcp_port), timeout=2)
                 self.sock.settimeout(self.read_timeout)
-                self._log(f"TCP connection opened: {tcp_host}:{tcp_port}", logging.INFO)
+                self.logger.info("TCP connection opened: %s:%d", tcp_host, tcp_port)
                 self.connected = True
             else:
                 raise ValueError("connection_type must be 'serial' or 'tcp'")
         except Exception as ex:
-            self._log(f"Failed to establish connection: {ex}", logging.ERROR)
+            self.logger.error("Failed to establish connection: %s", ex)
             raise
 
     def disconnect(self):
         """Close the connection."""
         if self.connection_type == "serial":
             self.ser.close()
-            self._log("Serial connection closed.", logging.INFO)
+            self.logger.info("Serial connection closed.")
         elif self.connection_type == "tcp":
             self.sock.close()
-            self._log("TCP connection closed.", logging.INFO)
+            self.logger.info("TCP connection closed.")
         self.connected = False
 
     def _send_command(self, command: str):
@@ -121,9 +124,9 @@ class SunpowerCryocooler:
                 self.ser.write(full_cmd.encode())
             elif self.connection_type == "tcp":
                 self.sock.sendall(full_cmd.encode())
-            self._log(f"Sent command: {repr(full_cmd)}")
+            self.logger.debug("Sent command: %s", repr(full_cmd))
         except Exception as ex:
-            self._log(f"Failed to send command '{command}': {ex}")
+            self.logger.error("Failed to send command '%s': %s", command, ex)
             raise
 
     def _read_reply(self):
@@ -137,14 +140,14 @@ class SunpowerCryocooler:
                 try:
                     raw_data = self.sock.recv(1024)
                 except socket.timeout:
-                    self._log("TCP read timeout.", logging.WARNING)
+                    self.logger.warning("TCP read timeout.")
                     return []
 
             if not raw_data:
-                self._log("No data received.", logging.WARNING)
+                self.logger.warning("No data received.")
                 return []
 
-            self._log(f"Raw received: {repr(raw_data)}")
+            self.logger.debug("Raw received: %s", repr(raw_data))
             lines = raw_data.decode(errors="replace").splitlines()
             for line in lines:
                 stripped = line.strip()
@@ -152,7 +155,7 @@ class SunpowerCryocooler:
                     lines_out.append(stripped)
             return lines_out
         except (serial.SerialException, socket.error, ValueError) as ex:
-            self._log(f"Failed to read reply: {ex}", logging.ERROR)
+            self.logger.error("Failed to read reply: %s", ex)
             return []
 
     def _send_and_read(self, command: str):
@@ -161,30 +164,8 @@ class SunpowerCryocooler:
             self._send_command(command)
             time.sleep(0.2)  # wait a bit for device to reply
             return self._read_reply()
-        self._log(f"Failed to send command '{command}': Not connected", logging.ERROR)
+        self.logger.error("Failed to send command '%s': Not connected", command)
         return []
-
-    def _log(self, message, level=logging.DEBUG):
-        """ output log message
-
-        :param message: String message
-        :param level: Log level
-        """
-        # logging set up
-        if self.logger:
-            self.logger.log(level, message)
-        # logging not set up
-        else:
-            log_type = logging.getLevelName(level)
-            # print everything
-            if self.verbose:
-                print(log_type + ": " + message)
-            # only print warnings or worse
-            else:
-                if level >= logging.WARNING:
-                    print(log_type + ":", message)
-        if level >= logging.WARNING:
-            self.last_error = message
 
     # --- User-Facing Methods (synchronous) ---
     def set_verbose(self, verbose: bool =True):
