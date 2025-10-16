@@ -96,20 +96,21 @@ class SunpowerCryocooler(HardwareDeviceBase):
             self.logger.info("TCP connection closed.")
         self._set_connected(False)
 
-    def _send_command(self, command: str):
+    def _send_command(self, command: str, *args) -> bool:
         """Send a command to the Sunpower controller."""
         full_cmd = f"{command}\r"
         try:
-            if self.connection_type == "serial":
+            if self.con_type == "serial":
                 self.ser.write(full_cmd.encode())
-            elif self.connection_type == "tcp":
+            elif self.con_type == "tcp":
                 self.sock.sendall(full_cmd.encode())
             self.logger.debug("Sent command: %s", repr(full_cmd))
         except Exception as ex:
             self.logger.error("Failed to send command '%s': %s", command, ex)
             raise
+        return True
 
-    def _read_reply(self):
+    def _read_reply(self) -> list:
         """Read and return lines from the device."""
         lines_out = []
         try:
@@ -140,7 +141,7 @@ class SunpowerCryocooler(HardwareDeviceBase):
 
     def _send_and_read(self, command: str):
         """Send a command and read the reply."""
-        if self.connected:
+        if self.is_connected():
             self._send_command(command)
             time.sleep(0.2)  # wait a bit for device to reply
             return self._read_reply()
@@ -148,6 +149,23 @@ class SunpowerCryocooler(HardwareDeviceBase):
         return []
 
     # --- User-Facing Methods (synchronous) ---
+    def get_atomic_value(self, item: str ="") -> Union[float, int, str, None]:
+        """Get the atomic value from the Sunpower cryocooler."""
+        retval = None
+        if item == "cold_head_temp":
+            retval = self.get_cold_head_temp()
+        elif item == "reject_temp":
+            retval = self.get_reject_temp()
+        elif item == "target_temp":
+            retval = self.get_target_temp()
+        elif item == "measured_power":
+            retval = self.get_measured_power()
+        elif item == "commanded_power":
+            retval = self.get_commanded_power()
+        else:
+            self.logger.error("Unknown item: %s", item)
+        return retval
+
     def get_status(self):
         """Get the status of the Sunpower cryocooler."""
         return self._send_and_read("STATUS")
