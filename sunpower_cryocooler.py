@@ -1,10 +1,8 @@
 """
 A Python class to control a Sunpower cryocooler via serial or TCP connection.
 """
-import sys
 import socket
 import time
-import logging
 from typing import Union
 import serial
 
