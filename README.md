@@ -20,9 +20,10 @@ pip install .
 ## Usage
 ### Serial Connection
 ```python
-from sunpower import SunpowerCryocooler
+from sunpower_cryocooler import SunpowerCryocooler
 
-controller = SunpowerCryocooler(port='/dev/ttyUSB0', baudrate=9600, quiet=True)
+controller = SunpowerCryocooler()
+controller.connect('/dev/ttyUSB0', 9600, con_type="serial")
 
 print("\n".join(controller.get_status()))
 controller.set_target_temp(300.0)
@@ -36,14 +37,10 @@ print("\n".join(controller.get_cold_head_temp()))
 
 ### TCP Connection
 ```python
-from hispec.util import SunpowerCryocooler
+from sunpower_cryocooler import SunpowerCryocooler
 
-controller = SunpowerCryocooler(
-    connection_type='tcp',
-    tcp_host='192.168.29.100',
-    tcp_port=10016,
-    quiet=True
-)
+controller = SunpowerCryocooler()
+controller.connect("192.168.29.100", 10016, con_type="tcp")
 
 print("\n".join(controller.get_status()))
 controller.set_target_temp(300.0)
