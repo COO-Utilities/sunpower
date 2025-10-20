@@ -11,6 +11,10 @@ A collection of Python interfaces for communicating with HISPEC FEI components.
 - Turn cooler on or off
 - Supports both serial and TCP (socket) connections with error handling
 
+## Requirements
+
+- Install base class from https://github.com/COO-Utilities/hardware_device_base
+
 ## Installation
 
 ```bash
