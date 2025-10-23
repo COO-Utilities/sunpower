@@ -7,6 +7,7 @@ name = "sunpower"
 version = "0.1.0"
 dependencies = [
     "pyserial>=3.4",
+    "hardware_device_base@git+https://github.com/COO-Utilities/hardware_device_base#egg=main"
 ]
 description = "A collection of Python interfaces for communicating with HISPEC FEI components, including Sunpower cryocooler control."
 authors = [
