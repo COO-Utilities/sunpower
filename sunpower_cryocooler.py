@@ -202,6 +202,11 @@ class SunpowerCryocooler(HardwareDeviceBase):
         """Get the commanded power of the cryocooler."""
         return parse_single_value(self._send_and_read("PWOUT"))
 
+    def get_current_commanded_power(self):
+        """Get the current commanded power of the cryocooler."""
+        retval = self._send_and_read("E")
+        return int(retval[3])
+
     def set_commanded_power(self, watts: float):
         """Set the commanded power for the cryocooler in watts."""
         return parse_single_value(self._send_and_read(f"PWOUT={watts}"))
