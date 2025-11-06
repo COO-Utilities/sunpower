@@ -162,6 +162,8 @@ class SunpowerCryocooler(HardwareDeviceBase):
             retval = self.get_measured_power()
         elif item == "commanded_power":
             retval = self.get_commanded_power()
+        elif item == "current_commanded_power":
+            retval = self.get_current_commanded_power()
         else:
             self.logger.error("Unknown item: %s", item)
         return retval
