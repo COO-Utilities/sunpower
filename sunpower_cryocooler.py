@@ -6,7 +6,7 @@ import time
 from typing import Union
 import serial
 
-from hardware_device_base import HardwareDeviceBase
+from hardware_device_base.hardware_sensor_base import HardwareSensorBase
 
 
 def parse_single_value(reply: list) -> Union[float, int, bool, str]:
@@ -40,7 +40,7 @@ def parse_single_value(reply: list) -> Union[float, int, bool, str]:
     # Fallback: return string
     return val.strip()
 
-class SunpowerCryocooler(HardwareDeviceBase):
+class SunpowerCryocooler(HardwareSensorBase):
     """A class to control a Sunpower cryocooler via serial or TCP connection."""
     # pylint: disable=too-many-instance-attributes
     def __init__(self, log: bool = True, logfile: str = __name__.rsplit(".", 1)[-1],
@@ -53,65 +53,80 @@ class SunpowerCryocooler(HardwareDeviceBase):
         self.ser = None
         self.sock = None
 
-    def connect(self, *args, con_type: str ="tcp"):
+    def connect(self, host, port, con_type: str ="tcp"):  # pylint: disable=W0221
         """Connect to the Sunpower controller."""
-        if self.validate_connection_params(args):
+        if self.validate_connection_params((host, port)):
             try:
                 if con_type == "serial":
-                    port = args[0]
-                    baudrate = args[1]
                     self.ser = serial.Serial(
-                        port=port,
-                        baudrate=baudrate,
+                        port=host,
+                        baudrate=port,
                         timeout=self.read_timeout,
                         parity=serial.PARITY_NONE,
                         stopbits=serial.STOPBITS_ONE,
                     )
-                    self.logger.info("Serial connection opened: %s",self.ser.is_open)
+                    self.report_info(f"Serial connection opened: {self.ser.is_open}")
                     self._set_connected(True)
                     self.con_type = con_type
                 elif con_type == "tcp":
-                    tcp_host = args[0]
-                    tcp_port = args[1]
-                    self.sock = socket.create_connection((tcp_host, tcp_port), timeout=2)
+                    self.sock = socket.create_connection((host, port), timeout=2)
                     self.sock.settimeout(self.read_timeout)
-                    self.logger.info("TCP connection opened: %s:%d", tcp_host, tcp_port)
+                    self.report_info(f"TCP connection opened: {host}:{port}")
                     self._set_connected(True)
                     self.con_type = con_type
                 else:
                     self._set_connected(False)
-                    raise ValueError("connection_type must be 'serial' or 'tcp'")
+                    self.report_error("connection_type must be 'serial' or 'tcp'")
             except Exception as ex:
                 self._set_connected(False)
-                self.logger.error("Failed to establish connection: %s", ex)
-                raise
+                self.report_error(f"Failed to establish connection: {ex}")
+                raise IOError(f"Failed to establish connection: {ex}") from ex
+        else:
+            self.report_error(f"Invalid connection parameters: {host}:{port}")
+            self._set_connected(False)
 
     def disconnect(self):
         """Close the connection."""
-        if self.con_type == "serial":
-            self.ser.close()
-            self.logger.info("Serial connection closed.")
-        elif self.con_type == "tcp":
-            self.sock.close()
-            self.logger.info("TCP connection closed.")
-        self._set_connected(False)
+        if not self.is_connected():
+            self.report_warning("Already disconnected from device.")
+            return
+        try:
+            if self.con_type == "serial":
+                self.ser.close()
+                self.report_info("Serial connection closed.")
+            elif self.con_type == "tcp":
+                self.sock.close()
+                self.report_info("TCP connection closed.")
+            self._set_connected(False)
+        except Exception as ex:
+            raise IOError(f"Failed to close connection: {ex}") from ex
+        self.report_info("Disconnected from device")
 
-    def _send_command(self, command: str, *args) -> bool:
+    def _send_command(self, command: str) -> bool:  # pylint: disable=W0221
         """Send a command to the Sunpower controller."""
+        if not self.is_connected():
+            self.report_error("Device is not connected.")
+            return False
+
         full_cmd = f"{command}\r"
         try:
+            self.logger.debug("Sending command: %s", full_cmd)
             if self.con_type == "serial":
                 self.ser.write(full_cmd.encode())
             elif self.con_type == "tcp":
                 self.sock.sendall(full_cmd.encode())
-            self.logger.debug("Sent command: %s", repr(full_cmd))
         except Exception as ex:
-            self.logger.error("Failed to send command '%s': %s", command, ex)
-            raise
+            self.report_error(f"Failed to send command: {ex}")
+            raise IOError(f"Failed to send command: {ex}") from ex
+        self.logger.debug("Command sent")
         return True
 
     def _read_reply(self) -> list:
         """Read and return lines from the device."""
+        if not self.is_connected():
+            self.report_error("Device is not connected.")
+            return []
+
         lines_out = []
         try:
             raw_data = None
@@ -121,11 +136,11 @@ class SunpowerCryocooler(HardwareDeviceBase):
                 try:
                     raw_data = self.sock.recv(1024)
                 except socket.timeout:
-                    self.logger.warning("TCP read timeout.")
+                    self.report_warning("TCP read timeout.", errno=-1)
                     return []
 
             if not raw_data:
-                self.logger.warning("No data received.")
+                self.report_warning("No data received.", errno=-1)
                 return []
 
             self.logger.debug("Raw received: %s", repr(raw_data))
@@ -136,7 +151,7 @@ class SunpowerCryocooler(HardwareDeviceBase):
                     lines_out.append(stripped)
             return lines_out
         except (serial.SerialException, socket.error, ValueError) as ex:
-            self.logger.error("Failed to read reply: %s", ex)
+            self.report_error(f"Failed to read reply: {ex}")
             return []
 
     def _send_and_read(self, command: str):
@@ -145,7 +160,7 @@ class SunpowerCryocooler(HardwareDeviceBase):
             self._send_command(command)
             time.sleep(0.2)  # wait a bit for device to reply
             return self._read_reply()
-        self.logger.error("Failed to send command '%s': Not connected", command)
+        self.report_error(f"Failed to send command '{command}': Not connected")
         return []
 
     # --- User-Facing Methods (synchronous) ---
@@ -165,7 +180,7 @@ class SunpowerCryocooler(HardwareDeviceBase):
         elif item == "current_commanded_power":
             retval = self.get_current_commanded_power()
         else:
-            self.logger.error("Unknown item: %s", item)
+            self.report_error(f"Unknown item: {item}")
         return retval
 
     def get_status(self):
