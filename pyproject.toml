@@ -17,7 +17,7 @@ maintainers = [
     {name = "Michael Langmayr", email = "langmayr@caltech.edu"}
 ]
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.8"
 license = {text = "MIT"}
 
 [project.urls]

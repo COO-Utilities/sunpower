@@ -162,6 +162,8 @@ class SunpowerCryocooler(HardwareDeviceBase):
             retval = self.get_measured_power()
         elif item == "commanded_power":
             retval = self.get_commanded_power()
+        elif item == "current_commanded_power":
+            retval = self.get_current_commanded_power()
         else:
             self.logger.error("Unknown item: %s", item)
         return retval
@@ -201,6 +203,11 @@ class SunpowerCryocooler(HardwareDeviceBase):
     def get_commanded_power(self):
         """Get the commanded power of the cryocooler."""
         return parse_single_value(self._send_and_read("PWOUT"))
+
+    def get_current_commanded_power(self):
+        """Get the current commanded power of the cryocooler."""
+        retval = self._send_and_read("E")
+        return float(retval[3])
 
     def set_commanded_power(self, watts: float):
         """Set the commanded power for the cryocooler in watts."""
