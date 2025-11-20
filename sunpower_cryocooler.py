@@ -100,7 +100,6 @@ class SunpowerCryocooler(HardwareSensorBase):
             self._set_connected(False)
         except Exception as ex:
             raise IOError(f"Failed to close connection: {ex}") from ex
-        self.report_info("Disconnected from device")
 
     def _send_command(self, command: str) -> bool:  # pylint: disable=W0221
         """Send a command to the Sunpower controller."""
