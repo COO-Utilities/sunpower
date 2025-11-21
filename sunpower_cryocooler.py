@@ -6,7 +6,7 @@ import time
 from typing import Union
 import serial
 
-from hardware_device_base.hardware_sensor_base import HardwareSensorBase
+from hardware_device_base import HardwareSensorBase
 
 
 def parse_single_value(reply: list) -> Union[float, int, bool, str]:
