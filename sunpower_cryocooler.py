@@ -109,7 +109,7 @@ class SunpowerCryocooler(HardwareSensorBase):
 
         full_cmd = f"{command}\r"
         try:
-            self.logger.debug("Sending command: %s", full_cmd)
+            self.report_debug(f"Sending command: {full_cmd}")
             if self.con_type == "serial":
                 self.ser.write(full_cmd.encode())
             elif self.con_type == "tcp":
@@ -117,7 +117,7 @@ class SunpowerCryocooler(HardwareSensorBase):
         except Exception as ex:
             self.report_error(f"Failed to send command: {ex}")
             raise IOError(f"Failed to send command: {ex}") from ex
-        self.logger.debug("Command sent")
+        self.report_debug("Command sent")
         return True
 
     def _read_reply(self) -> list:
@@ -142,7 +142,7 @@ class SunpowerCryocooler(HardwareSensorBase):
                 self.report_warning("No data received.", errno=-1)
                 return []
 
-            self.logger.debug("Raw received: %s", repr(raw_data))
+            self.report_debug(f"Raw received: {repr(raw_data)}")
             lines = raw_data.decode(errors="replace").splitlines()
             for line in lines:
                 stripped = line.strip()
