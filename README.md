@@ -64,3 +64,33 @@ To run all tests from the project root:
 ```bash
 pytest
 ```
+
+## Class Diagram
+
+Below is a class diagram of the added methods and attributes for the sunpower.
+See the README for the hardware_device_base module for the inherited methods and
+attributes.
+
+```mermaid
+classDiagram
+    class SunpowerCryocooler {
+        +Str con_type
+        +Float read_timeout
+        +serial.Serial ser
+        +socket sock
+        _send_and_read() List[str]
+        +get_status() List[str]
+        +get_error() Union[str, None]
+        +get_version() Union[str, None]
+        +get_coldhead_temp() Union[float, None]
+        +get_reject_temp() Union[float, None]
+        +get_target_temp() Union[float, None]
+        +set_target_temp() Union[float, None]
+        +get_measured_power() Union[float, None]
+        +get_commanded_poer() Union[float, None]
+        +get_current_commanded_power() Union[float, None]
+        +set_commanded_power() Union[float, None]
+        +turn_on_cooler() Union[bool, None]
+        +turn_off_cooler() Union[bool, None]
+    }
+```
