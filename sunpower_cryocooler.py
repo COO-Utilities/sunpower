@@ -42,7 +42,7 @@ def parse_single_value(reply: list) -> Union[float, int, bool, str]:
 
 class SunpowerCryocooler(HardwareSensorBase):
     """A class to control a Sunpower cryocooler via serial or TCP connection."""
-    # pylint: disable=too-many-instance-attributes
+    # pylint: disable=too-many-instance-attributes,too-many-public-methods
     def __init__(self, log: bool = True, logfile: str = __name__.rsplit(".", 1)[-1],
                  read_timeout: float = 1.0):
         """ Initialize the SunpowerCryocooler."""
@@ -186,6 +186,21 @@ class SunpowerCryocooler(HardwareSensorBase):
         """Get the status of the Sunpower cryocooler."""
         return self._send_and_read("STATUS")
 
+    def get_control_mode(self):
+        """Get the control mode of the Sunpower cryocooler.
+        OFF - cryocooler is off
+        ON - cryocooler is on and is in temperature control mode
+        POWER - cryocooler is on and is in power control mode"""
+        return self._send_and_read("COOLER")
+
+    def get_model(self):
+        """Get the model of the Sunpower cryocooler."""
+        return self._send_and_read("MODE")
+
+    def get_sensor(self):
+        """Get the sensor type of the Sunpower cryocooler."""
+        return self._send_and_read("SENSOR")
+
     def get_error(self):
         """Get the last error message from the Sunpower cryocooler."""
         return parse_single_value(self._send_and_read("ERROR"))
@@ -240,6 +255,34 @@ class SunpowerCryocooler(HardwareSensorBase):
         """Turn on the cryocooler."""
         return parse_single_value(self._send_and_read("COOLER=ON"))
 
+    def set_cooler_to_power_mode(self):
+        """Turn on the cryocooler."""
+        return parse_single_value(self._send_and_read("COOLER=POWER"))
+
     def turn_off_cooler(self):
         """Turn off the cryocooler."""
         return parse_single_value(self._send_and_read("COOLER=OFF"))
+
+    def get_pid_p(self):
+        """Get the proportional constant of the PID loop of the cryocooler."""
+        return parse_single_value(self._send_and_read("KP"))
+
+    def set_pid_p(self, p: float):
+        """Set the proportional constant of the PID loop of the cryocooler."""
+        return parse_single_value(self._send_and_read(f"KP={p}".format(p=p)))
+
+    def get_pid_i(self):
+        """Get the integral constant of the PID loop of the cryocooler."""
+        return parse_single_value(self._send_and_read("KI"))
+
+    def set_pid_i(self, p: float):
+        """Set the integral constant of the PID loop of the cryocooler."""
+        return parse_single_value(self._send_and_read(f"KI={p}".format(p=p)))
+
+    def get_pid_d(self):
+        """Get the derivative constant of the PID loop of the cryocooler."""
+        return parse_single_value(self._send_and_read("KD"))
+
+    def set_pid_d(self, p: float):
+        """Set the derivative constant of the PID loop of the cryocooler."""
+        return parse_single_value(self._send_and_read(f"KD={p}".format(p=p)))
