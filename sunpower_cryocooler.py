@@ -212,7 +212,16 @@ class SunpowerCryocooler(HardwareSensorBase):
 
     def get_measured_power(self):
         """Get the measured power of the cryocooler."""
-        return parse_single_value(self._send_and_read("P"))
+        resp = self.get_status()
+        value = None
+        for line in resp:
+            if 'Measured' in line:
+                try:
+                    value = float(line.split()[3])
+                except ValueError:
+                    self.report_error(f"Failed to parse value: {line}")
+        return value
+        # return parse_single_value(self._send_and_read("P"))
 
     def get_commanded_power(self):
         """Get the commanded power of the cryocooler."""
