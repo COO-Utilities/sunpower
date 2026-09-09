@@ -202,7 +202,17 @@ class SunpowerCryocooler(HardwareSensorBase):
         return self._send_and_read("SENSOR")
 
     def get_error(self):
-        """Get the last error message from the Sunpower cryocooler."""
+        """Get the last error code from the Sunpower cryocooler.
+        Returns a 6 digit Binary code as int:
+        000000 (0) No Error
+        000001 (1) Over Current
+        000010 (2) Jumper Error
+        000100 (4) Serial Communication Error
+        001000 (8) Non-Volatile Memory Error
+        010000 (16) Watchdog Error
+        100000 (32) Temperature Sensor Error
+        Or any combination of the above.
+        """
         return parse_single_value(self._send_and_read("ERROR"))
 
     def get_version(self):
