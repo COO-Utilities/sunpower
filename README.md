@@ -37,6 +37,7 @@ print("\n".join(controller.get_measured_power()))
 controller.set_commanded_power(10.0)
 print("\n".join(controller.get_reject_temp()))
 print("\n".join(controller.get_cold_head_temp()))
+print("\n".join(controller.get_error()))
 ```
 
 ### TCP Connection
@@ -54,7 +55,21 @@ print("\n".join(controller.get_measured_power()))
 controller.set_commanded_power(10.0)
 print("\n".join(controller.get_reject_temp()))
 print("\n".join(controller.get_cold_head_temp()))
+print("\n".join(controller.get_error()))
 ```
+
+### Error Codes
+
+Sunpower controller errors are returned as integers with a six-digit binary code as follows:
+- 000000 (0) No Error
+- 000001 (1) Over Current
+- 000010 (2) Jumper Error
+- 000100 (4) Serial Communication Error
+- 001000 (8) Non-Volatile Memory Error
+- 010000 (16) Watchdog Error
+- 100000 (32) Temperature Sensor Error
+
+The combination of all errors spans values from 0 to 63.
 
 ## 🧪 Testing
 Unit tests are located in `tests/` directory and use `pytest` with `unittest.mock` to simulate hardware behavior — no physical sunpower controller is required.
